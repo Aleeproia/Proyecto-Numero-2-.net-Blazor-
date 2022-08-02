@@ -1,0 +1,154 @@
+@page "/listadoestudiantes"
+@inject GetAllEstudiantesUseCase GetAllEstudiantesUseCase
+@inject IJSRuntime JsRuntime;
+@inject EliminarEstudianteUseCase EliminarEstudianteUseCase
+@inject ModificarEstudianteUseCase ModificarEstudianteUseCase
+@inject ConsultarEstudianteUseCase ConsultarEstudianteUseCase
+@inject AgregarEstudianteUseCase AgregarEstudianteUseCase
+@inject NavigationManager Navegador;
+
+@if(mostrar){
+     <input @bind="est3.nombre" class="form-control">
+     <input placeholder="" @bind="est3.apellido" class="form-control">
+     <input placeholder="" @bind="est3.email" class="form-control">
+     <input placeholder="" @bind="est3.DNI" class="form-control">
+     <button class="btn btn-aceptar" @onclick="()=>Acep(est3)">Aceptar</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+@if(mostraragregar){
+     
+     <th>Nombre</th><input placeholder="" @bind="est2.nombre" class="form-control">
+     <th>Apellido</th><input placeholder="" @bind="est2.apellido" class="form-control">
+     <th>Email</th><input placeholder="" @bind="est2.email" class="form-control">
+     <th>Documento</th><input placeholder="" @bind="est2.DNI" class="form-control">
+     <button class="btn btn-aceptar" @onclick="()=>Aceptar(est2.DNI)">Agregar Curso</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+
+<button class="btn btn-secondary" @onclick="()=>AgregarEstudianteNuevo()">Agregar nuevo Estudiante</button>
+
+<table class="table">
+     <thead>
+          <tr>
+               <th>ID</th>
+               <th>NOMBRE</th>
+               <th>APELLIDO</th>
+               <th>EMAIL</th>
+               <th>DNI</th>
+          </tr>
+     </thead>
+<tbody>
+@foreach (var est in _lista)
+{
+     <tr>
+          <td>@est.Id</td>
+          <td>@est.nombre</td>
+          <td>@est.apellido</td>
+          <th>@est.email</th>
+          <th>@est.DNI</th>
+          <td>
+               <button class="btn btn-primary"
+                         @onclick="()=>ModificarEstudiante(est)">
+                    <i class="oi oi-pencil"></i>
+               </button>
+
+               <button class="btn btn-danger"
+                         @onclick="()=>EliminarEstudiante(est.Id)">
+                    <i class="oi oi-trash"></i>
+               </button>
+          </td>
+     </tr>
+}
+</tbody>
+</table>
+@code {
+
+     List<Estudiante> _lista = new List<Estudiante>();
+     protected override void OnInitialized(){   
+     
+          _lista = GetAllEstudiantesUseCase.Ejecutar();
+     
+     }
+
+     async Task EliminarEstudiante(int id)
+     {
+          bool confirmado = await JsRuntime.InvokeAsync<bool>("confirm",
+          $"Desea eliminar el estudiante {id}?");
+
+          if (confirmado)
+          {
+               EliminarEstudianteUseCase.Ejecutar(id);
+               _lista = GetAllEstudiantesUseCase.Ejecutar();
+               }
+     }
+     Estudiante est = new Estudiante();
+     Estudiante est2= new Estudiante();
+     Estudiante est3= new Estudiante();
+     bool mostrar=false;
+     bool mostraragregar=false;
+     void ModificarEstudiante(Estudiante es)
+     {
+          mostrar=true;
+          est3=es;
+          mostraragregar=false;
+     }
+
+     async Task Acep(Estudiante est3){
+          var dni_hallado = ConsultarEstudianteUseCase.Ejecutar(est3.DNI);
+          if (dni_hallado != null){
+                if(dni_hallado.Id == est3.Id){
+                    est.nombre=est3.nombre;
+                    est.apellido=est3.apellido;
+                    est.email=est3.email;
+                    est.DNI=est3.DNI;
+                    ModificarEstudianteUseCase.Ejecutar(est3.Id,est);
+                    mostrar=false;
+                }
+                else{
+                    await JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ERROR : EL DNI YA EXISTE");
+                }
+          }
+          else
+          {
+               est.nombre=est3.nombre;
+               est.apellido=est3.apellido;
+               est.email=est3.email;
+               est.DNI=est3.DNI;
+               ModificarEstudianteUseCase.Ejecutar(est3.Id,est);
+               mostrar=false;
+          }
+          
+        
+          
+          _lista = GetAllEstudiantesUseCase.Ejecutar();
+     }
+     
+
+     void AgregarEstudianteNuevo(){
+          mostraragregar=true;
+          mostrar=false;
+     }
+     void Cancelar(){
+          mostrar=false;
+          mostraragregar=false;
+     }
+     async Task Aceptar(int dni){
+
+            var dni_hallado = ConsultarEstudianteUseCase.Ejecutar(dni);
+            if (dni_hallado != null)
+            {  
+               est2 = new Estudiante();
+               await JsRuntime.InvokeAsync<bool>("confirm",
+               $"ERROR : EL ESTUDIANTE YA EXISTE"); 
+            }else{
+                AgregarEstudianteUseCase.Ejecutar(est2);
+                est2 = new Estudiante();
+                await JsRuntime.InvokeAsync<bool>("confirm",
+                $"*** Se genero un nuevo estudiante con exito ***");
+               _lista = GetAllEstudiantesUseCase.Ejecutar(); 
+            }
+            mostraragregar=false;
+            Navegador.NavigateTo("listadoestudiantes");
+     }
+}

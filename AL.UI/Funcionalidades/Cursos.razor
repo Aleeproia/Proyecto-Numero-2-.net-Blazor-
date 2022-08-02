@@ -1,0 +1,152 @@
+@page "/listadocursos"
+@inject GetAllCursosUseCase GetAllCursosUseCase
+@inject EliminarCursoUseCase EliminarCursoUseCase
+@inject ModificarCursoUseCase ModificarCursoUseCase
+@inject ConsultarCursoUseCase ConsultarCursoUseCase
+@inject NavigationManager Navegador;
+@inject IJSRuntime JsRuntime;
+@inject AgregarCursoUseCase AgregarCursoUseCase
+
+@if(mostrar){
+     <input @bind="curso3.titulo" class="form-control">
+     <input @bind="curso3.descripcion" class="form-control">
+     <input @bind="curso3.fechainicio" class="form-control">
+     <input @bind="curso3.fechafinalizacion" class="form-control">
+     <button class="btn btn-aceptar" @onclick="()=>Acep(curso3)">Aceptar</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+@if(mostraragregar){
+     
+     <th>Título</th><input placeholder="" @bind="curso2.titulo" class="form-control">
+     <th>Descripción</th><input placeholder="" @bind="curso2.descripcion" class="form-control">
+     <th>Fecha de inicio</th><input placeholder="" @bind="curso2.fechainicio" class="form-control">
+     <th>Fecha de finalización</th><input placeholder="" @bind="curso2.fechafinalizacion" class="form-control">
+     <button class="btn btn-aceptar" @onclick="()=>Aceptar(curso2.titulo)">Agregar Curso</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+
+<button class="btn btn-secondary" @onclick="()=>AgregarCursoNuevo()">Agregar nuevo Curso</button>
+
+<table class="table">
+     <thead>
+          <tr>
+               <th>ID</th>
+               <th>TITULO</th>
+               <th>DESCRIPCION</th>
+               <th>FECHA DE INICIO</th>
+               <th>FECHA DE FINALIZACION</th>
+          </tr>
+     </thead>
+<tbody>
+@foreach (var cur in _lista)
+{
+     <tr>
+          <td>@cur.Id</td>
+          <td>@cur.titulo</td>
+          <td>@cur.descripcion</td>
+          <th>@cur.fechainicio</th>
+          <th>@cur.fechafinalizacion</th>
+          <td>
+               <button class="btn btn-primary"
+                         @onclick="()=>ModificarCurso(cur)">
+                    <i class="oi oi-pencil"></i>
+               </button>
+               <button class="btn btn-danger"
+                         @onclick="()=>EliminarCurso(cur.Id)">
+                    <i class="oi oi-trash"></i>
+               </button>
+          </td>
+     </tr>
+}
+</tbody>
+</table>
+@code {
+     List<Curso> _lista = new List<Curso>();
+     protected override void OnInitialized(){
+
+          _lista = GetAllCursosUseCase.Ejecutar();
+
+     }
+
+     async Task EliminarCurso(int id)
+     {
+          bool confirmado = await JsRuntime.InvokeAsync<bool>("confirm",
+          $"Desea eliminar el curso {id}?");
+
+          if (confirmado)
+          {
+               EliminarCursoUseCase.Ejecutar(id);
+               _lista = GetAllCursosUseCase.Ejecutar();
+               }
+     }
+     Curso curso = new Curso();
+     Curso curso2 = new Curso();
+     Curso curso3 = new Curso();
+     bool mostrar=false;
+     bool mostraragregar=false;
+
+     void ModificarCurso(Curso cur)
+     {    
+          curso = new Curso();
+          mostrar=true;
+          curso3=cur;
+          mostraragregar=false;
+     }
+     
+     async Task Acep(Curso curso3){
+          var curso_hallado = ConsultarCursoUseCase.Ejecutar(curso3.titulo);
+          if (curso_hallado != null){
+                if(curso_hallado.Id == curso3.Id){
+                    curso.titulo=curso3.titulo;
+                    curso.descripcion=curso3.descripcion;
+                    curso.fechainicio=curso3.fechainicio;
+                    curso.fechafinalizacion=curso3.fechafinalizacion;
+                    ModificarCursoUseCase.Ejecutar(curso3.Id,curso);
+                    mostrar=false;
+                }
+                else{
+                    await JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ERROR : EL CURSO YA EXISTE");
+                }
+          }
+          else
+          {
+               curso.titulo=curso3.titulo;
+               curso.descripcion=curso3.descripcion;
+               curso.fechainicio=curso3.fechainicio;
+               curso.fechafinalizacion=curso3.fechafinalizacion;
+               ModificarCursoUseCase.Ejecutar(curso3.Id,curso);
+               mostrar=false;
+          }
+          
+        
+          
+          _lista = GetAllCursosUseCase.Ejecutar();
+     }
+     void AgregarCursoNuevo(){
+          mostraragregar=true;
+          mostrar=false;
+     }
+     void Cancelar(){
+          mostrar=false;
+          mostraragregar=false;
+     }
+     async Task Aceptar(string titulo){
+
+            var curso_hallado = ConsultarCursoUseCase.Ejecutar(titulo);
+            if (curso_hallado != null)
+            {
+                await JsRuntime.InvokeAsync<bool>("confirm",
+                $"ERROR : EL CURSO YA EXISTE");
+                curso2 = new Curso(); 
+            }else{
+                AgregarCursoUseCase.Ejecutar(curso2);
+                curso2 = new Curso();
+                await JsRuntime.InvokeAsync<bool>("confirm",
+                $"*** Se genero un nuevo curso con exito ***");
+               _lista = GetAllCursosUseCase.Ejecutar(); 
+            }
+            mostraragregar=false;
+            Navegador.NavigateTo("listadocursos");
+     }
+}

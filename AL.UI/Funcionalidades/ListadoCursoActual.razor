@@ -1,0 +1,236 @@
+@page "/listadocursoactual"
+
+@inject ListadoEstudiantesCursoActualUseCase ListadoEstudiantesCursoActualUseCase
+@inject ListadoDeEstudiantesCursoFinalizadoUseCase ListadoDeEstudiantesCursoFinalizadoUseCase
+@inject ListadoEstudiantesDadoUnCursoUseCase ListadoEstudiantesDadoUnCursoUseCase
+@inject ListadoEstudiantesCursosInscriptoUseCase ListadoEstudiantesCursosInscriptoUseCase
+@inject ConsultarCursoUseCase ConsultarCursoUseCase
+@inject ConsultarEstudianteUseCase ConsultarEstudianteUseCase
+@inject GetAllCursosUseCase GetAllCursosUseCase
+@inject GetAllEstudiantesUseCase GetAllEstudiantesUseCase
+@inject NavigationManager Navegador;
+@inject IJSRuntime JsRuntime;
+
+<h4>Listado de todos los estudiantes que están realizando algún curso actualmente.</h4>
+<button class="btn btn-primary" @onclick="()=>MostrarList1()">Visualizar</button>
+<hr>
+<h4>Listado de todos los estudiantes que han finalizado algún curso.</h4>
+<button class="btn btn-primary" @onclick="()=>MostrarList2()">Visualizar</button>
+<hr>
+<h4>Listado de todos los Estudiantes dado un Curso (Buscar con titulo del curso)</h4>
+<input placeholder="Nombre del curso" @bind="titulo" class="form-control">
+<button class="btn btn-primary" @onclick="()=>MostrarList3(titulo)">Buscar</button>
+<button class="btn btn-primary" @onclick="()=>MostrarCursos()">Ver Cursos</button>
+<hr>
+<h4>Listado de todos los Cursos dado un Estudiante(Buscar con dni del estudiante)</h4>
+<input placeholder="DNI del Estudiante" @bind="dni" class="form-control">
+<button class="btn btn-primary" @onclick="()=>MostrarList4(dni)" >Buscar</button>
+<button class="btn btn-primary" @onclick="()=>MostrarEstudiantes()">Ver Estudiantes </button>
+<hr>
+@if(mostrarlistado1){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>NOMBRE</th>
+               <th>APELLIDO</th>
+               <th>CURSO</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var ins in _lista)
+     {
+          <tr>
+               <td>@ins.nombre_estudiante</td>
+               <td>@ins.apellido_estudiante</td>
+               <td>@ins.titulo_curso</td>
+          </tr>
+     }
+     </tbody>
+     </table>
+
+
+}
+@if(mostrarlistado2){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>NOMBRE</th>
+               <th>APELLIDO</th>
+               <th>CURSO</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var ins in _lista)
+     {
+          <tr>
+               <td>@ins.nombre_estudiante</td>
+               <td>@ins.apellido_estudiante</td>
+               <td>@ins.titulo_curso</td>
+          </tr>
+     }
+     </tbody>
+     </table>
+}
+@if(mostrarlistado3){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>NOMBRE ESTUDIANTE</th>
+               <th>APELLIDO ESTUDIANTE</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var ins in _listaestudiantes)
+     {
+          <tr>
+               <td>@ins.nombre</td>
+               <td>@ins.apellido</td>
+          </tr>
+     }
+     </tbody>
+     </table>
+}
+@if(mostrarlistado4){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>CURSOS</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var ins in _listacursos)
+     {
+          <tr>
+               <td>@ins.titulo</td>
+               
+          </tr>
+     }
+     </tbody>
+     </table>
+}
+@if(mostrarlistadocursos){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>CURSOS</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var ins in _listac)
+     {
+          <tr>
+               <td>@ins.titulo</td>
+               
+          </tr>
+     }
+     </tbody>
+     </table>
+}
+@if(mostrarlistadoestudiantes){
+     <table class="table">
+     <thead>
+          <tr>
+               <th>NOMBRE</th>
+               <th>DNI</th>
+          </tr>
+     </thead>
+     <tbody>
+     @foreach (var e in _listae)
+     {
+          <tr>
+               <td>@e.nombre</td>
+               <td>@e.DNI</td>
+               
+          </tr>
+     }
+     </tbody>
+     </table>
+}
+
+@code {
+
+
+     bool mostrarlistado1=false;
+     bool mostrarlistado2=false;
+     bool mostrarlistado3=false;
+     bool mostrarlistado4=false;
+     bool mostrarlistadocursos=false;
+     bool mostrarlistadoestudiantes=false;
+     List<Listados> _lista = new List<Listados>();
+     List<Estudiante> _listaestudiantes = new List<Estudiante>();
+     List<Curso> _listacursos = new List<Curso>();
+     List<Curso> _listac = new List<Curso>();
+     List<Estudiante> _listae = new List<Estudiante>();     
+     void MostrarList1(){
+          _lista = ListadoEstudiantesCursoActualUseCase.Ejecutar();
+          mostrarlistado1=true;
+          mostrarlistado2=false;
+          mostrarlistado3=false;
+          mostrarlistado4=false;
+          mostrarlistadocursos=false;
+          mostrarlistadoestudiantes=false;
+     }
+     void MostrarList2(){
+          _lista = ListadoDeEstudiantesCursoFinalizadoUseCase.Ejecutar();
+          mostrarlistado2=true;
+          mostrarlistado1=false;
+          mostrarlistado3=false;
+          mostrarlistado4=false;
+          mostrarlistadocursos=false;
+          mostrarlistadoestudiantes=false;
+     }
+     string? titulo;
+     void MostrarList3(string titulo){
+          var curso_hallado = ConsultarCursoUseCase.Ejecutar(titulo);
+          if(curso_hallado != null){
+               _listaestudiantes = ListadoEstudiantesDadoUnCursoUseCase.Ejecutar(curso_hallado.Id);
+               mostrarlistado3=true;
+               mostrarlistado2=false;
+               mostrarlistado1=false;
+               mostrarlistado4=false;
+               mostrarlistadocursos=false;
+               mostrarlistadoestudiantes=false;
+          }
+          else{
+               JsRuntime.InvokeAsync<bool>("confirm",
+                $"*** ERROR: Ingrese un curso Existente ***");
+          }
+     }
+     void MostrarCursos(){
+          _listac = GetAllCursosUseCase.Ejecutar();
+          mostrarlistadocursos=true;
+          mostrarlistadoestudiantes=false;
+          mostrarlistado1=false;
+          mostrarlistado2=false;
+          mostrarlistado3=false;
+          mostrarlistado4=false;
+     }
+     int dni;
+     void MostrarList4(int dni){
+          var dni_hallado = ConsultarEstudianteUseCase.Ejecutar(dni);
+          if(dni_hallado != null){
+               _listacursos = ListadoEstudiantesCursosInscriptoUseCase.Ejecutar(dni_hallado.Id);
+               mostrarlistado4=true;
+               mostrarlistado2=false;
+               mostrarlistado3=false;
+               mostrarlistado1=false;
+               mostrarlistadocursos=false;
+               mostrarlistadoestudiantes=false;
+
+          }
+          else{
+               JsRuntime.InvokeAsync<bool>("confirm",
+               $"*** ERROR: Ingrese un DNI de estudiante Existente ***");
+          }
+ 
+     }
+     void MostrarEstudiantes(){
+          _listae = GetAllEstudiantesUseCase.Ejecutar();
+          mostrarlistadoestudiantes=true;
+          mostrarlistadocursos=false;
+          mostrarlistado1=false;
+          mostrarlistado2=false;
+          mostrarlistado3=false;
+          mostrarlistado4=false;
+     }
+}

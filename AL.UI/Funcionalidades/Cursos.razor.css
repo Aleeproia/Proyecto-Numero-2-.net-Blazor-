@@ -1,0 +1,13 @@
+.form-control {
+    margin-bottom: 10px;
+    }
+.btn-secondary {
+    margin-left: 890px;
+    background-color: rgb(24, 131, 61);
+}
+.btn-cancelar{
+    background-color: rgb(243, 102, 102);
+}
+.btn-aceptar{
+    background-color: rgb(24, 131, 61)
+}

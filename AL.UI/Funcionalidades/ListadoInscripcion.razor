@@ -1,0 +1,184 @@
+@page "/listadoinscripciones"
+
+@inject GetAllInscripcionesUseCase GetAllInscripcionesUseCase
+@inject IJSRuntime JsRuntime;
+@inject EliminarInscripcionUseCase EliminarInscripcionUseCase
+@inject ModificarInscripcionUseCase ModificarInscripcionUseCase
+@inject ConsultarInscripcionUseCase ConsultarInscripcionUseCase
+@inject ConsultarCursoUseCase ConsultarCursoUseCase
+@inject ConsultarIdCursoUseCase ConsultarIdCursoUseCase
+@inject ConsultarEstudianteUseCase ConsultarEstudianteUseCase
+@inject ConsultarIdEstudianteUseCase ConsultarIdEstudianteUseCase
+@inject AgregarInscripcionUseCase AgregarInscripcionUseCase
+@inject NavigationManager Navegador;
+
+
+@if(mostrar){
+
+     <h4>Modificando ID CURSO: </h4><input @bind="ins3.Idcurso" class="form-control">
+     <h4>Modificando ID ESTUDIANTE: </h4><input @bind="ins3.Idestudiante" class="form-control">
+     <button class="btn btn-aceptar" @onclick="()=>Acep(ins3)">Aceptar</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+@if(mostraragregar){
+     <th>Titulo</th><input placeholder="Titulo del curso a inscribirse" @bind="titulolayout" class="form-control">
+     <th>Documento</th><input placeholder="Documento del estudiante" @bind="dnilayout" class="form-control">
+     <button class="btn btn-primary"  @onclick="()=>AgregarInscr(titulolayout,dnilayout)">Agregar</button>
+     <button class="btn btn-cancelar" @onclick="()=>Cancelar()">Cancelar</button>
+}
+
+<button class="btn btn-secondary" @onclick="()=>AgregarInscripcionNuevo()">Agregar nueva inscripcion</button>
+<table class="table">
+     <thead>
+          <tr>
+               <th>ID</th>
+               <th>ID DEL CURSO</th>
+               <th>ID DEL ESTUDIANTE</th>
+               <th>FECHA DE INSCRIPCION</th>
+          </tr>
+     </thead>
+<tbody>
+@foreach (var inscrip in _lista)
+{
+     <tr>
+          <td>@inscrip.Id</td>
+          <td>@inscrip.Idcurso</td>
+          <td>@inscrip.Idestudiante</td>
+          <td>@inscrip.fechainscripcion</td>
+          <td>
+               <button class="btn btn-primary"
+                         @onclick="()=>ModificarInscripcion(inscrip)">
+                    <i class="oi oi-pencil"></i>
+               </button>
+
+               <button class="btn btn-danger"
+                         @onclick="()=>EliminarInscripcion(inscrip.Id)">
+                    <i class="oi oi-trash"></i>
+               </button>
+          </td>
+     </tr>
+}
+</tbody>
+</table>
+@code {
+     Inscripcion ins = new Inscripcion();
+     Inscripcion ins2 = new Inscripcion();
+     Inscripcion ins3 = new Inscripcion();
+     List<Inscripcion> _lista = new List<Inscripcion>();
+     protected override void OnInitialized(){
+
+          _lista = GetAllInscripcionesUseCase.Ejecutar();
+
+     }
+
+     async Task EliminarInscripcion(int id)
+     {
+          bool confirmado = await JsRuntime.InvokeAsync<bool>("confirm",
+          $"Desea eliminar la inscripcion {id}?");
+
+          if (confirmado)
+          {
+               EliminarInscripcionUseCase.Ejecutar(id);
+               _lista = GetAllInscripcionesUseCase.Ejecutar();
+               }
+     }
+     
+      async Task Acep(Inscripcion ins3){
+          DateTime fechaactual = DateTime.Today;
+          var estudiantehallado = ConsultarIdEstudianteUseCase.Ejecutar(ins3.Idestudiante);
+          var cursohallado = ConsultarIdCursoUseCase.Ejecutar(ins3.Idcurso);
+          if((estudiantehallado != null) &&(cursohallado != null)){
+               var Inscripcion_hayada = ConsultarInscripcionUseCase.Ejecutar(cursohallado.Id,estudiantehallado.Id);  
+               if(Inscripcion_hayada != null){
+                         if((Inscripcion_hayada.Idcurso == ins3.Idcurso)&&(Inscripcion_hayada.Idestudiante == ins3.Idestudiante)){                  
+                              await JsRuntime.InvokeAsync<bool>("confirm",
+                              $"Ya existe un estudiante inscripto a ese curso ");
+                         }
+               }   
+               else{
+                    ins.Idestudiante=ins3.Idestudiante;
+                    ins.Idcurso=ins3.Idcurso;
+                    ins.fechainscripcion = fechaactual;
+                    ModificarInscripcionUseCase.Ejecutar(ins3.Id,ins);
+                    mostrar=false;
+                    _lista = GetAllInscripcionesUseCase.Ejecutar();                
+                    Navegador.NavigateTo("listadoinscripciones");
+               }
+          }
+          else{
+               if(estudiantehallado == null){
+                     await JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ESTUDIANTE NO EXISTE, PORFAVOR INGRESAR UN ESTUDIANTE VALIDO ");
+               }else{
+                    if(cursohallado == null){
+                        await  JsRuntime.InvokeAsync<bool>("confirm",
+                        $"CURSO NO EXISTE, PORFAVOR INGRESAR UN CURSO VALIDO ");
+                    }  
+               }
+          }
+     
+          _lista = GetAllInscripcionesUseCase.Ejecutar();
+           Navegador.NavigateTo("listadoinscripciones"); 
+     
+      }
+      
+     void ModificarInscripcion(Inscripcion inscrip)
+     {
+          ins = new Inscripcion();
+          mostrar=true;
+          ins3=inscrip;
+          mostraragregar=false;
+     }
+     void AgregarInscripcionNuevo(){
+          mostraragregar=true;
+          mostrar=false;
+     }
+     void Cancelar(){
+          mostrar=false;
+          mostraragregar=false;
+     }
+     bool mostrar=false;
+     bool mostraragregar=false;
+     
+     string? titulolayout="";
+     int dnilayout=0;
+
+     void AgregarInscr(string titulolayout,int dnilayout){ 
+          DateTime fechaactual = DateTime.Today;
+          var hayado_estudiante = ConsultarEstudianteUseCase.Ejecutar(dnilayout);
+          var hayado_curso = ConsultarCursoUseCase.Ejecutar(titulolayout);
+          if((hayado_curso != null)&&(hayado_estudiante !=null)){
+               var Inscripcion_hayada = ConsultarInscripcionUseCase.Ejecutar(hayado_curso.Id,hayado_estudiante.Id);
+                if(Inscripcion_hayada != null){
+                    JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ESTUDIANTE YA INSCRIPTO A ESE CURSO "); 
+                }
+                else{
+                    ins2.Idcurso=hayado_curso.Id;
+                    ins2.Idestudiante=hayado_estudiante.Id;
+                    ins2.fechainscripcion=fechaactual;
+                    AgregarInscripcionUseCase.Ejecutar(ins2);
+                    ins2 =new Inscripcion();
+                    JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ESTUDIANTE INSCRIPTO CON EXITO "); 
+                    _lista = GetAllInscripcionesUseCase.Ejecutar();
+                    Navegador.NavigateTo("listadoinscripciones"); 
+                }
+          }
+          else{
+               if(hayado_estudiante == null){
+                     JsRuntime.InvokeAsync<bool>("confirm",
+                    $"ESTUDIANTE NO EXISTE, PORFAVOR INGRESAR UN ESTUDIANTE VALIDO ");
+               }else{
+                    if(hayado_curso == null){
+                         JsRuntime.InvokeAsync<bool>("confirm",
+                        $"CURSO NO EXISTE, PORFAVOR INGRESAR UN CURSO VALIDO ");
+                    }  
+               }
+          }
+          _lista = GetAllInscripcionesUseCase.Ejecutar();
+           Navegador.NavigateTo("listadoinscripciones");  
+
+     }
+
+}
